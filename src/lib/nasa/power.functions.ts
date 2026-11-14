@@ -31,7 +31,7 @@ export const fetchClimateSeries = createServerFn({ method: "GET" })
     }
 
     const u = new URL(POWER_URL);
-    u.searchParams.set("parameters", "T2M,PRECTOTCORR,ALLSKY_SFC_SW_DWN");
+    u.searchParams.set("parameters", "T2M,T2M_MAX,T2M_MIN,RH2M,PRECTOTCORR,ALLSKY_SFC_SW_DWN");
     u.searchParams.set("community", "AG");
     u.searchParams.set("latitude", data.latitude.toFixed(4));
     u.searchParams.set("longitude", data.longitude.toFixed(4));
@@ -48,9 +48,13 @@ export const fetchClimateSeries = createServerFn({ method: "GET" })
     const T = p?.["T2M"];
     if (!p || !T) throw new Error("NASA POWER returned no data for this location");
     const P = p["PRECTOTCORR"], S = p["ALLSKY_SFC_SW_DWN"];
+    const Tmax = p["T2M_MAX"], Tmin = p["T2M_MIN"], RH = p["RH2M"];
     const days: DailyObservation[] = Object.keys(T).map((k) => ({
       date: `${k.slice(0, 4)}-${k.slice(4, 6)}-${k.slice(6, 8)}`,
       t2m: clean(T[k]),
+      t2mMax: clean(Tmax?.[k]),
+      t2mMin: clean(Tmin?.[k]),
+      rh2m: clean(RH?.[k]),
       precip: clean(P?.[k]),
       solar: clean(S?.[k]),
     }));

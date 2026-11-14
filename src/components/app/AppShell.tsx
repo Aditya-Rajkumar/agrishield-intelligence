@@ -27,7 +27,7 @@ function DataStatus() {
   return (
     <div className="rounded-lg border border-sidebar-border bg-sidebar-accent p-3 text-xs">
       <div className="flex items-center gap-2 font-medium"><span className={cn("h-2 w-2 rounded-full", state.c)} />{state.t}</div>
-      <p className="mt-1 flex items-center gap-1 text-sidebar-foreground/60"><Satellite className="h-3 w-3" />Daily point data · T2M, PRECTOTCORR, ALLSKY</p>
+      <p className="mt-1 flex items-center gap-1 text-sidebar-foreground/60"><Satellite className="h-3 w-3" />Daily point data · T2M/MAX/MIN, RH2M, PRECTOTCORR, ALLSKY</p>
     </div>
   );
 }

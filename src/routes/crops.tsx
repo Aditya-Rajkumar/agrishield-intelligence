@@ -9,6 +9,7 @@ import { pageHead } from "@/lib/head";
 import { Panel, PageHeader } from "@/components/app/Panel";
 import { ErrorState, LoadingState } from "@/components/app/DataState";
 import { SourceNote } from "@/components/app/SourceBadge";
+import { generateYieldAndRiskForecast, type DailyMeteoRecord } from "@/lib/agri/yield-forecast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +27,85 @@ function Score({ label, v }: { label: string; v: number }) {
       <div className="flex justify-between text-[11px] text-muted-foreground"><span>{label}</span><span className="font-mono">{v}</span></div>
       <div className="mt-1 h-1.5 rounded-full bg-muted"><div className={cn("h-full rounded-full", v >= 70 ? "bg-positive" : v >= 40 ? "bg-warning" : "bg-destructive")} style={{ width: `${v}%` }} /></div>
     </div>
+  );
+}
+
+function YieldEstimatePanel({ days, cropName }: { days: NonNullable<ReturnType<typeof useFarmClimate>["data"]>["days"]; cropName: string }) {
+  const [baseTemp, setBaseTemp] = useState("");
+  const [optimalGDD, setOptimalGDD] = useState("");
+  const [potentialYield, setPotentialYield] = useState("");
+  const records = useMemo<DailyMeteoRecord[]>(
+    () => days.flatMap((day) => (
+      day.t2mMax != null && day.t2mMin != null && day.rh2m != null && day.precip != null
+        ? [{ date: day.date, tMax: day.t2mMax, tMin: day.t2mMin, rh: day.rh2m, precip: day.precip }]
+        : []
+    )),
+    [days],
+  );
+  const config = useMemo(() => {
+    if ([baseTemp, optimalGDD, potentialYield].some((value) => value.trim() === "" || !Number.isFinite(Number(value)))) return null;
+    const parsedBaseTemp = Number(baseTemp);
+    const parsedOptimalGDD = Number(optimalGDD);
+    const parsedPotentialYield = Number(potentialYield);
+    if (parsedOptimalGDD <= 0 || parsedPotentialYield <= 0) return null;
+    return { baseTemp: parsedBaseTemp, optimalGDD: parsedOptimalGDD, potentialYield: parsedPotentialYield };
+  }, [baseTemp, optimalGDD, potentialYield]);
+  const report = useMemo(
+    () => config && records.length > 0 ? generateYieldAndRiskForecast(records, config) : null,
+    [config, records],
+  );
+
+  return (
+    <Panel title={`Experimental yield screening · ${cropName || "current crop"}`} subtitle="Uses complete NASA POWER daily observations from the current 90-day window">
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label htmlFor="yield-base-temp" className="text-xs">Crop base temperature (°C)</Label>
+            <Input id="yield-base-temp" type="number" step="0.5" value={baseTemp} onChange={(e) => setBaseTemp(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="yield-optimal-gdd" className="text-xs">Target GDD</Label>
+            <Input id="yield-optimal-gdd" type="number" min="1" step="50" value={optimalGDD} onChange={(e) => setOptimalGDD(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="yield-potential" className="text-xs">Potential yield (t/ha)</Label>
+            <Input id="yield-potential" type="number" min="0.1" step="0.1" value={potentialYield} onChange={(e) => setPotentialYield(e.target.value)} />
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-3">
+            Enter values for the crop and cultivar from a trusted local source. Only complete days with maximum/minimum temperature, humidity, and rainfall are used ({records.length} available).
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-secondary/50 p-4" aria-live="polite">
+          {report ? (
+            <>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Climate-screening estimate</p>
+              <p className="mt-1 font-mono text-3xl font-semibold">{report.predictedYieldTonnesPerHa} <span className="text-sm font-normal text-muted-foreground">t/ha</span></p>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <p>Accumulated GDD <b className="font-mono">{report.accumulatedGDD}</b></p>
+                <p>Mean VPD <b className="font-mono">{report.meanVPD} kPa</b></p>
+                <p className="col-span-2">Extreme events flagged <b className="font-mono">{report.extremeEvents.length}</b></p>
+              </div>
+              {report.extremeEvents.length > 0 && (
+                <ul className="mt-3 space-y-1 border-t border-border pt-3 text-xs">
+                  {report.extremeEvents.slice(0, 4).map((event, index) => (
+                    <li key={`${event.type}-${event.startDate}-${index}`}>
+                      <b>{event.severity} {event.type}</b> · {event.startDate}: {event.details}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : records.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No complete NASA POWER temperature, humidity, and rainfall records are available for this window; an estimate cannot be calculated.</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Enter the crop-specific values to calculate a screening estimate.</p>
+          )}
+        </div>
+      </div>
+      <p className="mt-3 text-xs text-warning-strong">
+        This experimental screening formula is not a validated yield model or a full-season forecast. It excludes cultivar, soil, pests, and farm management; do not use it as a guaranteed production estimate.
+      </p>
+    </Panel>
   );
 }
 
@@ -87,6 +167,7 @@ function CropsPage() {
                   ))}
                 </div>
               </Panel>
+              {q.data && <YieldEstimatePanel days={q.data.days} cropName={farm.currentCrop} />}
               <Panel title="Why these crops" subtitle="Highest-scoring individual crops and the reasoning behind each">
                 <div className="space-y-3">
                   {singles.map((c) => (

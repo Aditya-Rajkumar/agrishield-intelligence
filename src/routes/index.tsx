@@ -12,6 +12,8 @@ import { FarmMap } from "@/components/app/FarmMap";
 import { RiskBadge, riskBar } from "@/components/app/RiskBadge";
 import { ErrorState, LoadingState } from "@/components/app/DataState";
 import { SourceNote } from "@/components/app/SourceBadge";
+import { AlertCenter } from "@/components/app/AlertCenter";
+import { generateObservationAlerts } from "@/lib/agri/advisory-alerts";
 import { ClientOnly } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -24,6 +26,7 @@ function Dashboard() {
   const q = useFarmClimate();
   const stats = useMemo(() => (q.data ? computeStats(q.data.days) : null), [q.data]);
   const risks = useMemo(() => (stats ? assessRisks(stats, farm) : []), [stats, farm]);
+  const alerts = useMemo(() => (q.data ? generateObservationAlerts(q.data.days) : []), [q.data]);
   const latest = q.data && stats?.latestDate ? q.data.days.find((d) => d.date === stats.latestDate) : null;
 
   return (
@@ -74,6 +77,10 @@ function Dashboard() {
           )}
         </Panel>
       </div>
+
+      <Panel title="Recent observation alerts" subtitle="Last seven available NASA POWER daily observations">
+        {q.isLoading ? <LoadingState label="Checking recent observations…" /> : q.data && <AlertCenter alerts={alerts} />}
+      </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Rainfall" subtitle="Daily precipitation, mm/day">

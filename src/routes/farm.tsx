@@ -1,6 +1,6 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { MapPin } from "lucide-react";
+import { MapPin, Satellite } from "lucide-react";
 import { useFarm, useFarmClimate } from "@/lib/farm-context";
 import { computeStats, fmt } from "@/lib/agri/climate";
 import { SOIL_INFO, SOIL_LABELS, type SoilType, type WaterAvailability } from "@/lib/agri/soil";
@@ -10,6 +10,7 @@ import { FarmMap } from "@/components/app/FarmMap";
 import { InfoTip } from "@/components/app/InfoTip";
 import { LoadingState, ErrorState } from "@/components/app/DataState";
 import { SourceNote } from "@/components/app/SourceBadge";
+import { NASA_GIBS_LAYERS, type GibsLayerType } from "@/lib/nasa/gibs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,8 @@ function FarmPage() {
   const s = useMemo(() => (q.data ? computeStats(q.data.days) : null), [q.data]);
   const [lat, setLat] = useState(String(farm.latitude));
   const [lng, setLng] = useState(String(farm.longitude));
+  const [imageryLayer, setImageryLayer] = useState<GibsLayerType | "none">("none");
+  const [imageryStatus, setImageryStatus] = useState<"none" | "loading" | "loaded" | "error">("none");
   const soil = SOIL_INFO[farm.soilType];
 
   const move = (latitude: number, longitude: number, region?: string) => {
@@ -54,8 +57,43 @@ function FarmPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel title="Farm location" subtitle={farm.region} className="lg:col-span-2">
           <ClientOnly fallback={<div className="h-[380px] rounded-lg bg-muted" />}>
-            <FarmMap lat={farm.latitude} lng={farm.longitude} height={380} onSelect={(a, b) => move(a, b)} />
+            <FarmMap
+              lat={farm.latitude}
+              lng={farm.longitude}
+              height={380}
+              onSelect={(a, b) => move(a, b)}
+              gibsLayer={imageryLayer === "none" ? null : imageryLayer}
+              {...(s?.latestDate ? { gibsDate: s.latestDate } : {})}
+              onImageryStatusChange={setImageryStatus}
+            />
           </ClientOnly>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs font-medium">
+              <Satellite className="h-4 w-4 text-primary" />
+              NASA imagery
+            </label>
+            <Select value={imageryLayer} onValueChange={(value) => setImageryLayer(value as GibsLayerType | "none")}>
+              <SelectTrigger className="w-full max-w-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No overlay</SelectItem>
+                {Object.values(NASA_GIBS_LAYERS).map((layer) => (
+                  <SelectItem key={layer.id} value={layer.id}>{layer.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {imageryLayer === "none" ? "Select an overlay to view NASA GIBS imagery." :
+                imageryStatus === "loading" ? "Loading NASA tiles…" :
+                  imageryStatus === "loaded" ? `NASA GIBS imagery for ${s?.latestDate ?? "the latest available date"}.` :
+                    imageryStatus === "error" ? "NASA GIBS imagery could not be loaded for this date." :
+                      "Waiting for the latest observation date…"}
+            </p>
+            {imageryLayer !== "none" && (
+              <p className="basis-full text-xs text-muted-foreground">
+                {NASA_GIBS_LAYERS[imageryLayer].description} Tile availability varies by layer and date.
+              </p>
+            )}
+          </div>
           <div className="mt-4 flex flex-wrap items-end gap-3">
             <div className="space-y-1"><Label htmlFor="lat" className="text-xs">Latitude</Label><Input id="lat" className="w-32 font-mono" value={lat} onChange={(e) => setLat(e.target.value)} /></div>
             <div className="space-y-1"><Label htmlFor="lng" className="text-xs">Longitude</Label><Input id="lng" className="w-32 font-mono" value={lng} onChange={(e) => setLng(e.target.value)} /></div>
