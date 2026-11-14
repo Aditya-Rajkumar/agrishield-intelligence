@@ -38,7 +38,7 @@ The intended value is better awareness and more transparent planning, not automa
 
 ### Climate Analysis
 
-- [Screenshot: Climate Analysis showing date-range controls, year-over-year comparison, charts, and missing-data indicators.]
+<img width="1280" height="680" alt="image" src="https://github.com/user-attachments/assets/93fced8c-8cb7-4950-8537-a7c475edca80" />
 
 - Explore daily temperature, precipitation, and solar-radiation observations.
 - Choose a date range or a 30-, 90-, 180-, or 365-day preset.
@@ -47,7 +47,7 @@ The intended value is better awareness and more transparent planning, not automa
 
 ### Crop Recommendations
 
-- [Screenshot: Crop Recommendations showing rotation comparisons, suitability explanations, and the yield-screening inputs with its caution.]
+<img width="1088" height="678" alt="image" src="https://github.com/user-attachments/assets/b873adef-2027-46b9-b57b-a2036d132307" />
 
 - Compare crop rotations using recent climate data and the saved farm profile.
 - Adjust soil, pH, water availability, current crop, and farming priorities.
@@ -58,7 +58,7 @@ The yield screen is not a validated yield model or full-season forecast. It requ
 
 ### Risk Analysis
 
-- [Screenshot: Risk Analysis showing the risk levels, supporting evidence, and suggested actions.]
+<img width="1100" height="676" alt="image" src="https://github.com/user-attachments/assets/ee5410ac-4626-4e16-becb-7f6a6b8321e5" />
 
 - Review drought, excess-rainfall, heat, water-availability, and soil risk indicators.
 - See the evidence and suggested action behind each rule-based score.
