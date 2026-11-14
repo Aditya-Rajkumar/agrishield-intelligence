@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Climate data comes only from NASA POWER via the `fetchClimateSeries` server function (or the Python backend when `AGRISHIELD_API_URL` is set); never show fabricated/mock observations — show error states instead.
+- Keep agricultural logic pure in `src/lib/agri/*` (stats, risk, recommendations) and UI in `src/components/app/*`, so the backend can replace calculations without UI changes.
